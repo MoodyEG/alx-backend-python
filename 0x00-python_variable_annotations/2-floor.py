@@ -3,5 +3,5 @@
 
 
 def floor(n: float) -> int:
-	""" Floor """
-	return int(n)
+    """ Floor """
+    return int(n)
