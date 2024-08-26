@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Testing client"""
+""" Testing client, AI was used """
 import unittest
 from unittest.mock import patch, PropertyMock
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 from client import GithubOrgClient
 from typing import Mapping, Sequence, Any, Dict
+import fixtures
 
 
 class TestGithubOrgClient(unittest.TestCase):
@@ -61,3 +62,30 @@ class TestGithubOrgClient(unittest.TestCase):
         """ Test that GithubOrgClient.has_license """
         client = GithubOrgClient("google")
         self.assertEqual(client.has_license(repo, license_key), expected)
+
+
+@parameterized_class(
+    ["org_payload", "repos_payload", "expected_repos", "apache2_repos"],
+    fixtures.TEST_PAYLOAD
+)
+class TestIntegrationGithubOrgClient(unittest.TestCase):
+    """ Integration test with mocking of requests.get
+        AI was used """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        """ Setup class method of TestIntegrationGithubOrgClient """
+        cls.get_patcher = patch("requests.get")
+        cls.mock_get = cls.get_patcher.start()
+        cls.mock_get.side_effect = [
+            lambda url: {"json": lambda: cls.org_payload}
+            if url == GithubOrgClient.ORG_URL.format(org="google")
+            else lambda url: {"json": lambda: cls.repos_payload}
+            if url == GithubOrgClient.ORG_URL.format(org="google") + "/repos"
+            else None
+        ]
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        """ Teardown class method of TestIntegrationGithubOrgClient """
+        cls.get_patcher.stop()
