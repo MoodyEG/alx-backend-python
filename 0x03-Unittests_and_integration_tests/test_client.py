@@ -77,13 +77,20 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         """ Setup class method of TestIntegrationGithubOrgClient """
         cls.get_patcher = patch("requests.get")
         cls.mock_get = cls.get_patcher.start()
-        cls.mock_get.side_effect = [
-            lambda url: {"json": lambda: cls.org_payload}
-            if url == GithubOrgClient.ORG_URL.format(org="google")
-            else lambda url: {"json": lambda: cls.repos_payload}
-            if url == GithubOrgClient.ORG_URL.format(org="google") + "/repos"
-            else None
+        cls.mock_responses = [
+            unittest.mock.Mock(json=lambda: cls.org_payload),
+            unittest.mock.Mock(json=lambda: cls.repos_payload),
         ]
+
+        def side_effect(url):
+            if url == GithubOrgClient.ORG_URL.format(org="google"):
+                return cls.mock_responses[0]
+            elif url == GithubOrgClient.ORG_URL\
+                    .format(org="google") + "/repos":
+                return cls.mock_responses[1]
+            else:
+                return unittest.mock.Mock(json=lambda: [])
+        cls.mock_get.side_effect = side_effect
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -93,7 +100,7 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
     def test_public_repos(self) -> None:
         """ Test that GithubOrgClient.public_repos """
         client = GithubOrgClient("google")
-        self.assertEqual(client.public_repos(), self.apache2_repos)
+        self.assertEqual(client.public_repos(), self.expected_repos)
 
     def test_public_repos_with_license(self) -> None:
         """Test that GithubOrgClient.public_repos with license arg """
